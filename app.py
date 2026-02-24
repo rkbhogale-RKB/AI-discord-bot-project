@@ -1,21 +1,24 @@
-import streamlit as st
-from groq import Groq
-import os
-
 # ────────────────────────────────────────
 # CONFIG
 # ────────────────────────────────────────
-GAME_NAME = "[Game Name]"           # e.g. "Elden Ring" or "My Custom RPG"
-MODEL = "llama-3.1-8b-instant"      # fast & free-tier friendly; or "llama-3.3-70b-versatile" if your key allows
+GAME_NAME = "CounterForce GPS RTS"           # Change this
+MODEL = "llama-3.1-8b-instant"              # or whichever you prefer
+
+# Load knowledge from external file (relative path from repo root)
+try:
+    with open("knowledge.txt", "r", encoding="utf-8") as f:
+        knowledge_base = f.read().strip()
+except FileNotFoundError:
+    knowledge_base = "No knowledge base found. Please add knowledge.txt to the repo."
+    st.error("knowledge.txt not found in repo root!")
 
 SYSTEM_PROMPT = f"""You are the ultimate expert and lore master for {GAME_NAME}.
-You ONLY use knowledge from the official game sources below. Never make up facts, never say you don't know — redirect politely to in-game info if needed.
+You ONLY use knowledge from the official game sources in the knowledge base below. 
+Never make up facts, never say you don't know — redirect politely to in-game info if needed.
 Be immersive: use game-style language, nicknames, lore flavor. Keep answers helpful, concise but detailed when asked.
 
 === FULL GAME KNOWLEDGE BASE ===
-[Paste / summarize your full 10 pages here — lore, characters, items, quests, mechanics, world rules, endings, tips, etc.]
-
-Example: If someone asks about a weapon, describe stats, location, lore flavor text, how to obtain, etc. exactly as in the game.
+{knowledge_base}
 
 Current date is irrelevant — answer as if the game world is eternal.
 """
