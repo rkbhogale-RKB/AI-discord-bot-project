@@ -4,6 +4,8 @@ from discord.ext import commands
 import os
 from dotenv import load_dotenv
 from groq import Groq
+from flask import Flask
+import threading
 
 load_dotenv()
 
@@ -70,3 +72,16 @@ async def ping(ctx):
     await ctx.send("Pong!")
 
 bot.run(DISCORD_TOKEN)
+
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    return f"ISO Intelligent Bot is alive! Knowledge size: {len(GAME_KNOWLEDGE)} chars"
+
+def run_flask():
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+
+# Start Flask in background thread
+threading.Thread(target=run_flask, daemon=True).start()
