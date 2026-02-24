@@ -125,3 +125,6 @@ Interceptors available (used to shoot down incoming missiles):
   Explosive: 0 kg
   Cash: 3135 £
   Fuels: 1476 kg
+
+  thier are various structures in the game :
+  

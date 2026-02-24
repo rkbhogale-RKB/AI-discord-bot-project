@@ -4,7 +4,7 @@ import os
 # ────────────────────────────────────────
 # CONFIG
 # ────────────────────────────────────────
-GAME_NAME = "CounterForce GPS RTS"           # Change this
+GAME_NAME = "ISO Chatbot CF"           # Change this
 MODEL = "llama-3.1-8b-instant"              # or whichever you prefer
 
 # Load knowledge from external file (relative path from repo root)
@@ -31,8 +31,8 @@ Current date is irrelevant — answer as if the game world is eternal.
 # ────────────────────────────────────────
 st.set_page_config(page_title=f"{GAME_NAME} Expert", layout="wide")
 
-st.title(f"🕹️ {GAME_NAME} Lore & Gameplay Expert")
-st.caption("Ask anything — quests, builds, lore, bosses, secrets...")
+st.title(f"🕹️ {GAME_NAME} Assistant")
+st.caption("Ask anything — problems, builds, lore,...")
 
 # Initialize Groq client from secrets
 client = Groq(api_key=st.secrets["GROQ_API_KEY"])
