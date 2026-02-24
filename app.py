@@ -1,3 +1,6 @@
+import streamlit as st
+from groq import Groq
+import os
 # ────────────────────────────────────────
 # CONFIG
 # ────────────────────────────────────────
