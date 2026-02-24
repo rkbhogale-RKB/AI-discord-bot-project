@@ -6,6 +6,7 @@ Max 6 extractors per city, for each new city travel 10km radius away.
 T1 resources : ore, coal, uranium, gold, saltpeter, oil, lumber, concrete,crops.
 T2 resources : food, fuels, metals,Explosive,nerve agent, construction supplies.
 T3 resources :machinery, electronics, fissile.
+extractors are only or T1 while this T1 reosurce is processed into T2 and further T3 using processor
 Processors:
 • Oil refinery: 300k oil → 150k fuel( used in Aircraft,missile,trucks,tanks)
 • Enrichment: 10,000 kg uranium → 100 kg fissile(nukes,icbms, nuclear fuels)
