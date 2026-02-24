@@ -126,5 +126,45 @@ Interceptors available (used to shoot down incoming missiles):
   Cash: 3135 £
   Fuels: 1476 kg
 
-  thier are various structures in the game :
-  
+thier are various structures in the game :
+Missile Site
+This structure allows you to purchase missiles.
+Missiles are used to eliminate enemy players and destroy enemy structures.
+
+SAM Site
+Here, you can purchase interceptor.
+Interceptor help defend your base by shooting down incoming enemy missiles.
+
+Sentry Guns
+Sentry guns provide short-range defense.
+They automatically target and attack enemy missiles, aircraft, ground units, and players within a 1.5 km radius.
+
+Warehouse
+Warehouse connects to your resource inventory, enabling you to Transfer or receive resources remotely.
+It has a 300-meter operating range for resource transfers.
+You can also purchase trucks here, which can collect airdrops and gather resources from longer distances.
+
+Airbase
+The airbase allows you to build and store aircraft for combat and support operations.
+
+Artillery Batteries
+This structure stores and fires artillery shells.
+It can be set to automatically target enemies, making it highly effective in short-range combat.
+Artillery batteries have a firing range of up to 30 km.
+
+Armory
+Armory lets you purchase battle tanks and self-propelled anti-aircraft guns.
+You can also store ground units here for deployment or defense.
+
+Bunker
+Bunker provides protection from radiation and missile attacks.
+To stay protected, you must be within a 300-meter radius of the bunker.
+
+Extractor (also referred to Miner or Ore Miner)
+This structure allows you to extract resources from nearby deposits.
+
+Scrapyard
+The scrapyard converts your collected resources into money.
+Radar Station
+Radar stations scan the area for aircraft, ships, submarines, infantry, tanks, and structures.
+Each radar covers a radius of 800 km.
