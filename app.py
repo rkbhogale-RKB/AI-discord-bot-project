@@ -29,8 +29,20 @@ Current date is irrelevant — answer as if the game world is eternal.
 # ────────────────────────────────────────
 # APP
 # ────────────────────────────────────────
+# ────────────────────────────────────────
 st.set_page_config(page_title=f"{GAME_NAME} Expert", layout="wide")
 
+# --- ADD THIS PART HERE ---
+hide_streamlit_style = """
+            <style>
+            #MainMenu {visibility: hidden;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            /* This part specifically hides the 'Deploy' and 'GitHub' buttons */
+            .stAppDeployButton {display:none;}
+            </style>
+            """
+st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 st.title(f"🕹️ {GAME_NAME} Assistant")
 st.caption("Ask anything — problems, builds, lore,...")
 
