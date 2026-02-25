@@ -39,21 +39,10 @@ st.set_page_config(page_title=f"{GAME_NAME} Expert", layout="wide")
 hide_streamlit_style = """
             <style>
             #MainMenu {visibility: hidden;}
-            footer {visibility: hidden !important;}
-            header {visibility: hidden !important;}
-            
-            /* This targets the "Made with Streamlit" and Owner name specifically */
-            footer {display: none !important;}
-            .stAppHeader {display: none !important;}
-            
-            /* Removes the padding at the top so it looks like a clean app */
-            .block-container {
-                padding-top: 1rem;
-                padding-bottom: 0rem;
-            }
-            
-            /* Hides the 'Deploy' button on desktop/mobile */
-            .stAppDeployButton {display:none !important;}
+            footer {visibility: hidden;}
+            header {visibility: hidden;}
+            /* This part specifically hides the 'Deploy' and 'GitHub' buttons */
+            .stAppDeployButton {display:none;}
             </style>
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
