@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import os
+import time
 from google import genai
 from google.genai import types
 
@@ -8,15 +9,15 @@ from google.genai import types
 # CONFIG
 # ────────────────────────────────────────
 GAME_NAME = "ISO Chatbot CF" 
-
+# Use Gemini 3.5 Flash for rapid text generation
 MODEL = "gemini-3.5-flash"
-
+# Use Google's standard embedding model
 EMBEDDING_MODEL = "text-embedding-004"
 
 # RAG Configuration
 CHUNK_SIZE_WORDS = 150
 CHUNK_OVERLAP_WORDS = 30
-TOP_K_CHUNKS = 8
+TOP_K_CHUNKS = 3
 
 st.set_page_config(page_title=f"{GAME_NAME} Expert", layout="wide")
 
@@ -45,8 +46,6 @@ def get_chunks(text, chunk_size, overlap):
             chunks.append(" ".join(chunk_words))
     return chunks
 
-# @st.cache_resource ensures the vector DB is built ONLY ONCE when the app starts, 
-# preventing expensive recalculations on every button click.
 @st.cache_resource(show_spinner="Forging Knowledge Base...")
 def load_and_embed_knowledge():
     try:
@@ -63,13 +62,40 @@ def load_and_embed_knowledge():
     # 1. Chunk the text
     chunks = get_chunks(raw_text, CHUNK_SIZE_WORDS, CHUNK_OVERLAP_WORDS)
     
-    # 2. Batch Embed all chunks at once
-    response = client.models.embed_content(
-        model=EMBEDDING_MODEL,
-        contents=chunks
-    )
-    # Extract the vector representations
-    embeddings = np.array([e.values for e in response.embeddings])
+    # 2. Batch Embed to avoid ClientError (Payload Too Large)
+    BATCH_SIZE = 100 # Gemini API limit for embedding arrays
+    all_embeddings = []
+    
+    # Create a progress bar in the UI
+    progress_text = "Embedding Knowledge Base..."
+    my_bar = st.progress(0, text=progress_text)
+    
+    for i in range(0, len(chunks), BATCH_SIZE):
+        batch = chunks[i : i + BATCH_SIZE]
+        
+        try:
+            response = client.models.embed_content(
+                model=EMBEDDING_MODEL,
+                contents=batch
+            )
+            # Extract and store the vectors
+            all_embeddings.extend([e.values for e in response.embeddings])
+            
+            # Update progress bar
+            progress = min((i + BATCH_SIZE) / len(chunks), 1.0)
+            my_bar.progress(progress, text=f"{progress_text} ({int(progress*100)}%)")
+            
+            # Sleep briefly to respect free-tier rate limits (RPM)
+            time.sleep(1.5) 
+            
+        except Exception as e:
+            st.error(f"Error during embedding batch {i} to {i+BATCH_SIZE}: {str(e)}")
+            st.stop()
+            
+    my_bar.empty() # Remove progress bar when done
+    
+    # 3. Convert to NumPy array for fast math
+    embeddings = np.array(all_embeddings)
     
     return chunks, embeddings
 
@@ -81,18 +107,15 @@ if not chunks or knowledge_embeddings is None:
 
 def retrieve_context(query, client, top_k=TOP_K_CHUNKS):
     """Finds the top_k most relevant chunks using cosine similarity."""
-    # Embed the user's question
     response = client.models.embed_content(
         model=EMBEDDING_MODEL,
         contents=query,
     )
     query_embedding = np.array(response.embeddings[0].values)
     
-    # Calculate Cosine Similarity (Math to find closest meaning)
     norms = np.linalg.norm(knowledge_embeddings, axis=1) * np.linalg.norm(query_embedding)
     similarities = np.dot(knowledge_embeddings, query_embedding) / norms
     
-    # Get the indices of the highest scoring chunks
     top_indices = np.argsort(similarities)[::-1][:top_k]
     return [chunks[i] for i in top_indices]
 
@@ -139,7 +162,7 @@ Current date is irrelevant — answer as if the game world is eternal.
                 role = "model" if msg["role"] == "assistant" else "user"
                 formatted_messages.append({"role": role, "parts": [{"text": msg["content"]}]})
             
-            # 4. Stream generation using the new API specs
+            # 4. Stream generation
             config = types.GenerateContentConfig(
                 system_instruction=DYNAMIC_SYSTEM_PROMPT,
                 temperature=0.75,
@@ -162,4 +185,4 @@ Current date is irrelevant — answer as if the game world is eternal.
             st.session_state.messages.append({"role": "assistant", "content": full_response})
 
         except Exception as e:
-            st.error(f"Error: {str(e)}\nCheck if your GEMINI_API_KEY is valid.")
+            st.error(f"Error: {str(e)}\nCheck your GEMINI_API_KEY and Streamlit logs.")
