@@ -12,7 +12,7 @@ GAME_NAME = "ISO Chatbot CF"
 # Use Gemini 3.5 Flash for rapid text generation
 MODEL = "gemini-3.5-flash"
 # Use Google's standard embedding model
-EMBEDDING_MODEL = "text-embedding-004"
+EMBEDDING_MODEL = "gemini-embedding-001"
 
 # RAG Configuration
 CHUNK_SIZE_WORDS = 150
