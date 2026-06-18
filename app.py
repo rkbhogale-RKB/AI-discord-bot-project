@@ -3,21 +3,22 @@ import numpy as np
 import os
 import time
 from google import genai
-from google.genai import types
+from openai import OpenAI
 
 # ────────────────────────────────────────
-# CONFIG
+# CONFIGURATION
 # ────────────────────────────────────────
-GAME_NAME = "ISO Chatbot CF" 
-# Use Gemini 3.5 Flash for rapid text generation
-MODEL = "gemini-3.5-flash"
-# Use Google's standard embedding model
+GAME_NAME = "ISO Chatbot CF"
+
+# RAG & Embedding (Powered by Google Gemini Free Tier)
 EMBEDDING_MODEL = "gemini-embedding-001"
-
-# RAG Configuration
 CHUNK_SIZE_WORDS = 150
 CHUNK_OVERLAP_WORDS = 30
 TOP_K_CHUNKS = 3
+
+# Chat Models (Powered by OpenRouter Free Tier)
+PRIMARY_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
+FALLBACK_MODEL = "google/gemma-2-9b-it:free"
 
 st.set_page_config(page_title=f"{GAME_NAME} Expert", layout="wide")
 
@@ -31,10 +32,10 @@ hide_streamlit_style = """
             """
 st.markdown(hide_streamlit_style, unsafe_allow_html=True)
 st.title(f"🕹️ {GAME_NAME} Assistant")
-st.caption("Ask anything — powered by Gemini & Semantic RAG")
+st.caption("Ask anything — powered by OpenRouter & Semantic RAG")
 
 # ────────────────────────────────────────
-# RAG: CHUNKING & EMBEDDING
+# RAG: CHUNKING & EMBEDDING (GEMINI)
 # ────────────────────────────────────────
 def get_chunks(text, chunk_size, overlap):
     """Splits text into overlapping word chunks."""
@@ -58,45 +59,33 @@ def load_and_embed_knowledge():
         return [], None
 
     client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
-    
-    # 1. Chunk the text
     chunks = get_chunks(raw_text, CHUNK_SIZE_WORDS, CHUNK_OVERLAP_WORDS)
     
-    # 2. Batch Embed to avoid ClientError (Payload Too Large)
-    BATCH_SIZE = 100 # Gemini API limit for embedding arrays
+    BATCH_SIZE = 100
     all_embeddings = []
     
-    # Create a progress bar in the UI
     progress_text = "Embedding Knowledge Base..."
     my_bar = st.progress(0, text=progress_text)
     
     for i in range(0, len(chunks), BATCH_SIZE):
         batch = chunks[i : i + BATCH_SIZE]
-        
         try:
             response = client.models.embed_content(
                 model=EMBEDDING_MODEL,
                 contents=batch
             )
-            # Extract and store the vectors
             all_embeddings.extend([e.values for e in response.embeddings])
             
-            # Update progress bar
             progress = min((i + BATCH_SIZE) / len(chunks), 1.0)
             my_bar.progress(progress, text=f"{progress_text} ({int(progress*100)}%)")
-            
-            # Sleep briefly to respect free-tier rate limits (RPM)
             time.sleep(1.5) 
             
         except Exception as e:
             st.error(f"Error during embedding batch {i} to {i+BATCH_SIZE}: {str(e)}")
             st.stop()
             
-    my_bar.empty() # Remove progress bar when done
-    
-    # 3. Convert to NumPy array for fast math
+    my_bar.empty()
     embeddings = np.array(all_embeddings)
-    
     return chunks, embeddings
 
 chunks, knowledge_embeddings = load_and_embed_knowledge()
@@ -120,9 +109,13 @@ def retrieve_context(query, client, top_k=TOP_K_CHUNKS):
     return [chunks[i] for i in top_indices]
 
 # ────────────────────────────────────────
-# CHAT INTERFACE
+# CHAT INTERFACE (OPENROUTER WITH FALLBACK)
 # ────────────────────────────────────────
-client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
+or_client = OpenAI(
+  base_url="https://openrouter.ai/api/v1",
+  api_key=st.secrets["OPENROUTER_API_KEY"],
+)
+gemini_client = genai.Client(api_key=st.secrets["GEMINI_API_KEY"])
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -139,11 +132,10 @@ if prompt := st.chat_input(f"Ask about {GAME_NAME}..."):
     with st.chat_message("assistant"):
         message_placeholder = st.empty()
         
-        # 1. Retrieve the best lore snippets based on the prompt
-        retrieved_chunks = retrieve_context(prompt, client)
+        # 1. Retrieve the best lore snippets
+        retrieved_chunks = retrieve_context(prompt, gemini_client)
         context_str = "\n\n".join([f"[Source {i+1}]: {c}" for i, c in enumerate(retrieved_chunks)])
         
-        # 2. Inject ONLY the relevant snippets into the System Instruction
         DYNAMIC_SYSTEM_PROMPT = f"""You are the ultimate expert and lore master for {GAME_NAME}.
 You ONLY use knowledge from the context snippets below. 
 Never make up facts, never say you don't know — redirect politely to in-game info if needed.
@@ -152,37 +144,46 @@ Be immersive: use game-style language, nicknames, lore flavor. Keep answers conc
 === RELEVANT LORE SNIPPETS ===
 {context_str}
 ==============================
-Current date is irrelevant — answer as if the game world is eternal.
 """
         
-        try:
-            # 3. Format history for Gemini (Requires 'user' and 'model' roles)
-            formatted_messages = []
-            for msg in st.session_state.messages:
-                role = "model" if msg["role"] == "assistant" else "user"
-                formatted_messages.append({"role": role, "parts": [{"text": msg["content"]}]})
-            
-            # 4. Stream generation
-            config = types.GenerateContentConfig(
-                system_instruction=DYNAMIC_SYSTEM_PROMPT,
+        # 2. Format history for OpenRouter
+        formatted_messages = [{"role": "system", "content": DYNAMIC_SYSTEM_PROMPT}]
+        for msg in st.session_state.messages:
+            formatted_messages.append({"role": msg["role"], "content": msg["content"]})
+        
+        # Helper function to generate stream
+        def generate_response(model_name):
+            return or_client.chat.completions.create(
+                model=model_name,
+                messages=formatted_messages,
                 temperature=0.75,
-                max_output_tokens=600,
-            )
-            
-            stream = client.models.generate_content_stream(
-                model=MODEL,
-                contents=formatted_messages,
-                config=config,
+                max_tokens=600,
+                stream=True,
             )
 
-            full_response = ""
+        full_response = ""
+        try:
+            # Try Primary Model First (Llama 3.1)
+            stream = generate_response(PRIMARY_MODEL)
             for chunk in stream:
-                if chunk.text is not None:
-                    full_response += chunk.text
+                if chunk.choices[0].delta.content is not None:
+                    full_response += chunk.choices[0].delta.content
                     message_placeholder.markdown(full_response + "▌")
-
-            message_placeholder.markdown(full_response)
-            st.session_state.messages.append({"role": "assistant", "content": full_response})
-
+                    
         except Exception as e:
-            st.error(f"Error: {str(e)}\nCheck your GEMINI_API_KEY and Streamlit logs.")
+            # If Primary fails, warn user and use Fallback Model (Gemma 2)
+            st.warning(f"Network busy. Rerouting request...")
+            full_response = ""
+            try:
+                stream = generate_response(FALLBACK_MODEL)
+                for chunk in stream:
+                    if chunk.choices[0].delta.content is not None:
+                        full_response += chunk.choices[0].delta.content
+                        message_placeholder.markdown(full_response + "▌")
+            except Exception as fallback_error:
+                st.error(f"Both API models failed. Error: {str(fallback_error)}")
+                st.stop()
+
+        message_placeholder.markdown(full_response)
+        if full_response:
+            st.session_state.messages.append({"role": "assistant", "content": full_response})
