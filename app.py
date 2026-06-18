@@ -17,8 +17,8 @@ CHUNK_OVERLAP_WORDS = 30
 TOP_K_CHUNKS = 3
 
 # Chat Models (Powered by OpenRouter Free Tier)
-PRIMARY_MODEL = "meta-llama/llama-3.1-8b-instruct:free"
-FALLBACK_MODEL = "google/gemma-2-9b-it:free"
+PRIMARY_MODEL = "openrouter/free" 
+FALLBACK_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
 
 st.set_page_config(page_title=f"{GAME_NAME} Expert", layout="wide")
 
