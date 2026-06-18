@@ -14,10 +14,10 @@ GAME_NAME = "ISO Chatbot CF"
 EMBEDDING_MODEL = "gemini-embedding-001"
 CHUNK_SIZE_WORDS = 150
 CHUNK_OVERLAP_WORDS = 30
-TOP_K_CHUNKS = 3
+TOP_K_CHUNKS = 5
 
 # Chat Models (Powered by OpenRouter Free Tier)
-PRIMARY_MODEL = "openrouter/free" 
+PRIMARY_MODEL = "qwen/qwen-2.5-14b-instruct" 
 FALLBACK_MODEL = "meta-llama/llama-3.2-3b-instruct:free"
 
 st.set_page_config(page_title=f"{GAME_NAME} Expert", layout="wide")
