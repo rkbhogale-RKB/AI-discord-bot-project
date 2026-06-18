@@ -17,7 +17,7 @@ CHUNK_OVERLAP_WORDS = 30
 TOP_K_CHUNKS = 5
 
 # Chat Models (Powered by OpenRouter Free Tier)
-PRIMARY_MODEL = "qwen/qwen-2.5-14b-instruct" 
+PRIMARY_MODEL = "openrouter/free" 
 FALLBACK_MODEL = "openrouter/free"
 
 st.set_page_config(page_title=f"{GAME_NAME} Expert", layout="wide")
